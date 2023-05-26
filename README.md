@@ -1,4 +1,4 @@
-![NVMColor_header](https://github.com/NVMNovem/NVMCrypto_swift/assets/44820440/3eef5d95-9cb0-4424-a537-f7dc4faacba1)
+![NVMColor_header](https://github.com/NVMNovem/NVMCrypto_swift/assets/44820440/357cdc0d-fe40-44c9-a3a9-465f136624a9)
 
 
 <h3 align="center">iOS · macOS · watchOS · tvOS</h3>
