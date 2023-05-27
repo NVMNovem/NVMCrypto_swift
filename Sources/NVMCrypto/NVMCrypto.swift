@@ -1,44 +1,166 @@
 import Foundation
 import CryptoKit
 
-public class NVMCrypto {
+public class NVMCrypto<T : Codable> {
     
-    public static func encrypt(_ data: Data, with cryptKeys: NVMCryptKeys = NVMCryptKeys.generated(),
+    /**
+     Encrypt data using `NVMCryptKeys`
+     */
+    public static func encrypt(_ value: T, with cryptKeys: NVMCryptKeys = NVMCryptKeys.generated(),
                                encoding: String.Encoding? = nil) throws -> NVMCryptResult {
         
-        let sealedBox = try AES.GCM.seal(data, using: cryptKeys.getSymmetricKey())
+        if let dataValue = value as? Data {
+            return try dataValue.seal(using: cryptKeys, encoding: encoding)
+        } else {
+            let encodedValue = try self.nvmEncode(value)
+            return try encodedValue.seal(using: cryptKeys, encoding: encoding)
+        }
+    }
+    
+    /**
+     Decrypt data using `NVMCryptKeys`
+     */
+    public static func decrypt(_ type: T.Type, data: Data, with cryptKeys: NVMCryptKeys) throws -> T {
+        
+        if type == Data.self {
+            return try data.open(using: try cryptKeys.getSymmetricKey()) as! T
+        } else {
+            let decryptedData = try data.open(using: try cryptKeys.getSymmetricKey())
+            return try self.nvmDecode(type, data: decryptedData)
+        }
+    }
+    
+    
+    /**
+     Encrypt data using `SymmetricKey`
+     */
+    public static func encrypt(_ value: T, with symmetricKey: SymmetricKey,
+                               encoding: String.Encoding? = nil) throws -> NVMCryptResult {
+        
+        if let dataValue = value as? Data {
+            return try dataValue.seal(using: symmetricKey, encoding: encoding)
+        } else {
+            let encodedValue = try self.nvmEncode(value)
+            return try encodedValue.seal(using: symmetricKey, encoding: encoding)
+        }
+    }
+    
+    /**
+     Decrypt data using `SymmetricKey`
+     */
+    public static func decrypt(_ type: T.Type, data: Data, with symmetricKey: SymmetricKey) throws -> T {
+        
+        if type == Data.self {
+            return try data.open(using: symmetricKey) as! T
+        } else {
+            let decryptedData = try data.open(using: symmetricKey)
+            return try self.nvmDecode(type, data: decryptedData)
+        }
+    }
+    
+    
+    /**
+     Encrypt data using `Password`
+     */
+    public static func encrypt(_ value: T, with password: String,
+                               encoding: String.Encoding? = nil) throws -> NVMCryptResult {
+        
+        if let dataValue = value as? Data {
+            return try dataValue.seal(using: try SymmetricKey(password: password), encoding: encoding)
+        } else {
+            let encodedValue = try self.nvmEncode(value)
+            return try encodedValue.seal(using: try SymmetricKey(password: password), encoding: encoding)
+        }
+    }
+    
+    /**
+     Decrypt data using `Password`
+     */
+    public static func decrypt(_ type: T.Type, data: Data, with password: String) throws -> T {
+        
+        if type == Data.self {
+            return try data.open(using: try SymmetricKey(password: password)) as! T
+        } else {
+            let decryptedData = try data.open(using: try SymmetricKey(password: password))
+            return try self.nvmDecode(type, data: decryptedData)
+        }
+    }
+    
+    
+    /**
+     Decrypt data from `NVMCryptResult`
+     */
+    public static func decrypt(_ type: T.Type, from nvmCryptResult: NVMCryptResult) throws -> T {
+        
+        if type == Data.self {
+            if let cryptKeys = nvmCryptResult.cryptKeys {
+                return try nvmCryptResult.data.open(using: try cryptKeys.getSymmetricKey()) as! T
+            } else if let symmetricKey = nvmCryptResult.symmetricKey {
+                return try nvmCryptResult.data.open(using: symmetricKey) as! T
+            } else {
+                throw NVMCryptResultError.invalidKey
+            }
+        } else {
+            if let cryptKeys = nvmCryptResult.cryptKeys {
+                let decryptedData = try nvmCryptResult.data.open(using: try cryptKeys.getSymmetricKey())
+                return try self.nvmDecode(type, data: decryptedData)
+            } else if let symmetricKey = nvmCryptResult.symmetricKey {
+                let decryptedData = try nvmCryptResult.data.open(using: symmetricKey)
+                return try self.nvmDecode(type, data: decryptedData)
+            } else {
+                throw NVMCryptResultError.invalidKey
+            }
+        }
+    }
+}
+
+private extension NVMCrypto {
+    
+    private class func nvmEncode<T : Encodable>(_ value: T) throws -> Data {
+        
+        let encoder = JSONEncoder()
+        encoder.dataEncodingStrategy = .base64
+        return try encoder.encode(value)
+    }
+    
+    private class func nvmDecode<T : Decodable>(_ type: T.Type, data: Data) throws -> T {
+        
+        let decoder = JSONDecoder()
+        decoder.dataDecodingStrategy = .base64
+        return try decoder.decode(type, from: data)
+    }
+}
+
+fileprivate extension Data {
+    
+    func seal(using cryptKeys: NVMCryptKeys, encoding: String.Encoding?) throws -> NVMCryptResult {
+        
+        let sealedBox = try AES.GCM.seal(self, using: try cryptKeys.getSymmetricKey())
         let sealedBoxData = sealedBox.combined!
 
         return NVMCryptResult(data: sealedBoxData, with: cryptKeys, encoding: encoding)
     }
     
-    public static func decrypt(_ data: Data, with cryptKeys: NVMCryptKeys) throws -> Data {
+    func seal(using key: SymmetricKey, encoding: String.Encoding?) throws -> NVMCryptResult {
         
-        let BSharedSecret = try cryptKeys.privateKey.sharedSecretFromKeyAgreement(with: cryptKeys.publicKey)
-        let BSymmetricKey = BSharedSecret.hkdfDerivedSymmetricKey(using: SHA256.self, salt: cryptKeys.salt, sharedInfo: Data(), outputByteCount: 32)
-        
-        let sealedBox = try AES.GCM.SealedBox(combined: data)
-        let decryptedData = try AES.GCM.open(sealedBox, using: BSymmetricKey)
-            
-        return decryptedData
-    }
-}
+        let sealedBox = try AES.GCM.seal(self, using: key)
+        let sealedBoxData = sealedBox.combined!
 
-public extension NVMCrypto {
-    
-    static func encryptString(_ string: String, with cryptKeys: NVMCryptKeys = NVMCryptKeys.generated(),
-                                     encoding: String.Encoding = .utf8) throws -> NVMCryptResult {
-        
-        return try self.encrypt(string.data(using: .utf8)!, with: cryptKeys, encoding: encoding)
+        return NVMCryptResult(data: sealedBoxData, with: key, encoding: encoding)
     }
     
-    static func decryptString(_ data: Data, with cryptKeys: NVMCryptKeys, encoding: String.Encoding = .utf8) throws -> String {
+    
+    func open(using cryptKeys: NVMCryptKeys) throws -> Data {
         
-        return String(data: try self.decrypt(data, with: cryptKeys), encoding: encoding)!
+        let sealedBox = try AES.GCM.SealedBox(combined: self)
+        
+        return try AES.GCM.open(sealedBox, using: try cryptKeys.getSymmetricKey())
     }
     
-    static func decryptString(_ nvmCryptResult: NVMCryptResult) throws -> String {
+    func open(using key: SymmetricKey) throws -> Data {
         
-        return String(data: try self.decrypt(nvmCryptResult.data, with: nvmCryptResult.cryptKeys), encoding: nvmCryptResult.stringEncoding)!
+        let sealedBox = try AES.GCM.SealedBox(combined: self)
+        
+        return try AES.GCM.open(sealedBox, using: key)
     }
 }

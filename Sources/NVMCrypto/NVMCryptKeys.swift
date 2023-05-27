@@ -68,6 +68,12 @@ public extension NVMCryptKeys {
         let symmetricKey = sharedSecret.hkdfDerivedSymmetricKey(using: SHA256.self, salt: salt, sharedInfo: Data(), outputByteCount: 32)
         return symmetricKey
     }
+    
+    func getSymmetricString() throws -> String {
+        return try self.getSymmetricKey().withUnsafeBytes {
+            Data($0).base64EncodedString()
+        }
+    }
 }
 
 public extension NVMCryptKeys {
@@ -82,5 +88,16 @@ public extension NVMCryptKeys {
     
     var saltString: String {
         return self.salt.base64EncodedString()
+    }
+}
+
+public extension SymmetricKey {
+    
+    init(password: String) throws {
+        guard let data = Data(base64Encoded: password) else {
+            throw NVMCryptoError.dataEncodingFailed
+        }
+        
+        self.init(data: data)
     }
 }
