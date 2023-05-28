@@ -44,10 +44,10 @@ search field. Then select the option that is most suited for your needs.
 
 ### Encrypting
 ```swift
-let nvmCryptResult = try NVMCrypto.encryptString("Your string to encrypt")
+let nvmCryptResult = try NVMCrypto.encrypt("Your string to encrypt")
 ```
 
 ### Decrypting
 ```swift
-let decryptedString = try NVMCrypto.decryptString(nvmCryptResult)
+let decryptedString = try NVMCrypto.decrypt(String.self, from: nvmCryptResult)
 ```
