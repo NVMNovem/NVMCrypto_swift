@@ -15,32 +15,24 @@ public struct NVMCryptResult {
     public let cryptKeys: NVMCryptKeys?
     public let symmetricKey: SymmetricKey?
     
-    internal let encoding: String.Encoding?
-    
-    public init(data: Data, with cryptKeys: NVMCryptKeys,
-                encoding: String.Encoding?) {
+    public init(data: Data, with cryptKeys: NVMCryptKeys) {
         self.data = data
         
         self.cryptKeys = cryptKeys
         self.symmetricKey = nil
-        
-        self.encoding = encoding
     }
     
-    public init(data: Data, with symmetricKey: SymmetricKey,
-                encoding: String.Encoding?) {
+    public init(data: Data, with symmetricKey: SymmetricKey) {
         self.data = data
         
         self.cryptKeys = nil
         self.symmetricKey = symmetricKey
-        
-        self.encoding = encoding
     }
 }
 
 public extension NVMCryptResult {
     
-    var stringEncoding: String.Encoding {
-        return self.encoding ?? .utf8
+    var dataString: String {
+        return self.data.base64EncodedString()
     }
 }

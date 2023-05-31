@@ -8,6 +8,7 @@
 import Foundation
 
 public enum NVMCryptoError: Error {
+    case base64EncodingFailed
     case dataEncodingFailed
     case stingEncodingFailed
 }
@@ -19,15 +20,22 @@ public enum NVMCryptResultError: Error {
 extension NVMCryptoError: LocalizedError {
     public var errorCode: Int {
         switch self {
-        case .dataEncodingFailed:
+        case .base64EncodingFailed:
             return 1
-        case .stingEncodingFailed:
+        case .dataEncodingFailed:
             return 2
+        case .stingEncodingFailed:
+            return 3
         }
     }
     
     public var errorDescription: String? {
         switch self {
+        case .base64EncodingFailed:
+            return NSLocalizedString(
+                "Base64 encoding failed.",
+                comment: ""
+            )
         case .dataEncodingFailed:
             return NSLocalizedString(
                 "Data encoding failed.",
