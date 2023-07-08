@@ -6,7 +6,10 @@ import PackageDescription
 let package = Package(
     name: "NVMCrypto",
     platforms: [
-        .macOS(.v11), .iOS(.v15), .tvOS(.v15)
+        .macOS(.v11),
+        .iOS(.v15),
+        .tvOS(.v15),
+        .watchOS(.v7)
     ],
     products: [
         .library(
