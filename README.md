@@ -21,7 +21,7 @@ This project is created and maintained by Novem.
 
 ### [Swift Package Manager](https://swift.org/package-manager/)
 
-You can use The Swift Package Manager (SPM) to install NVMRegion by adding the following description to your `Package.swift` file:
+You can use The Swift Package Manager (SPM) to install NVMCrypto by adding the following description to your `Package.swift` file:
 
 ```swift
 import PackageDescription
